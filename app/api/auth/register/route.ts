@@ -1,15 +1,7 @@
 import { NextResponse } from 'next/server';
-
-// This is a simple in-memory user store for demonstration purposes
-// In a real application, you would use a database
-export const users: { id: string; name: string; email: string; password: string }[] = [
-  {
-    id: '1',
-    name: 'Demo User',
-    email: 'user@example.com',
-    password: 'password', // In a real app, this would be hashed
-  },
-];
+import { registerUser, getUserByEmail } from '@/lib/firebase-service';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 export async function POST(request: Request) {
   try {
@@ -23,8 +15,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check if user already exists
-    const userExists = users.find((user) => user.email === email);
+    // Check if user already exists in Firebase
+    const userExists = await getUserByEmail(email);
     if (userExists) {
       return NextResponse.json(
         { error: 'User with this email already exists' },
@@ -32,21 +24,10 @@ export async function POST(request: Request) {
       );
     }
 
-    // In a real application, you would hash the password before storing
-    // const hashedPassword = await bcrypt.hash(password, 10);
+    // Register user with Firebase
+    const newUser = await registerUser(name, email, password);
 
-    // Create new user
-    const newUser = {
-      id: String(users.length + 1),
-      name,
-      email,
-      password, // This would be hashedPassword in a real app
-    };
-
-    // Add to our in-memory store
-    users.push(newUser);
-
-    // Return success but don't include password
+    // Return success but don't include sensitive information
     return NextResponse.json({
       id: newUser.id,
       name: newUser.name,
@@ -61,9 +42,21 @@ export async function POST(request: Request) {
   }
 }
 
-// This is for demonstration purposes only
-// In a real application, you would not expose user data like this
+// Get all users from Firebase Firestore
 export async function GET() {
-  const safeUsers = users.map(({ password, ...user }) => user);
-  return NextResponse.json(safeUsers);
+  try {
+    // In a production environment, this endpoint should be protected
+    // and should implement pagination for large datasets
+    const usersRef = collection(db, 'users');
+    const querySnapshot = await getDocs(usersRef);
+    
+    const users = querySnapshot.docs.map(doc => doc.data());
+    return NextResponse.json(users);
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch users' },
+      { status: 500 }
+    );
+  }
 }

@@ -30,40 +30,26 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
-          // In a real application, you would fetch the user from your database
-          // and compare the hashed password
-          const response = await fetch(`/api/auth/register`);
-          const users = await response.json();
+          // Verify credentials using Firebase Authentication
+          const { signInUser, getUserByEmail } = await import('@/lib/firebase-service');
           
-          const user = users.find((user: any) => user.email === credentials.email);
-          
-          // This is a simplified version for demonstration
-          // In a real app, you would use proper password hashing and verification
-          if (user) {
-            // Check if this is the demo user with hardcoded credentials
-            if (credentials.email === "user@example.com" && credentials.password === "password") {
+          try {
+            // Attempt to sign in with Firebase
+            await signInUser(credentials.email, credentials.password);
+            
+            // If sign-in successful, get user data from Firestore
+            const user = await getUserByEmail(credentials.email);
+            
+            if (user) {
               return {
                 id: user.id,
                 name: user.name,
                 email: user.email,
               };
             }
-            
-            // For other users, we would verify against our API
-            // In a real app, this would be a proper password verification
-            const isValidPassword = await fetch(`/api/auth/verify-password`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ email: credentials.email, password: credentials.password }),
-            }).then(res => res.json()).then(data => data.valid).catch(() => false);
-            
-            if (isValidPassword) {
-              return {
-                id: user.id,
-                name: user.name,
-                email: user.email,
-              };
-            }
+          } catch (authError) {
+            console.error("Firebase auth error:", authError);
+            return null;
           }
         } catch (error) {
           console.error("Auth error:", error);
