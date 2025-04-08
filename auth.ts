@@ -129,6 +129,10 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async redirect({ url, baseUrl }) {
+      // If no callback URL is specified, redirect to dashboard
+      if (url === baseUrl || url === `${baseUrl}/`) {
+        return `${baseUrl}/dashboard`;
+      }
       // Allows relative URLs
       if (url.startsWith("/")) return `${baseUrl}${url}`;
       // Allows callback URLs on the same origin
