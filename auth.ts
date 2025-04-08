@@ -139,10 +139,11 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   callbacks: {
     async redirect({ url, baseUrl }) {
-      // If no callback URL is specified, redirect to dashboard
+      // Handle default redirects
       if (url === baseUrl || url === `${baseUrl}/`) {
         return `${baseUrl}/dashboard`;
       }
@@ -152,15 +153,17 @@ export const authOptions: NextAuthOptions = {
       else if (new URL(url).origin === baseUrl) return url;
       return baseUrl;
     },
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user) {
         token.id = user.id;
+        token.provider = account?.provider;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as any).id = token.id as string;
+        (session.user as any).id = token.id;
+        (session.user as any).provider = token.provider;
       }
       return session;
     },
