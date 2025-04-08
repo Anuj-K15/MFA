@@ -15,6 +15,7 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
+    domains: ['avatars.githubusercontent.com', 'github.com'],
   },
   experimental: {
     webpackBuildWorker: true,
